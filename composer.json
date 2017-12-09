@@ -1,0 +1,20 @@
+{
+  "name": "zkr/telegram-lottery-bot",
+  "description": "telegram lottery bot",
+  "minimum-stability": "dev",
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "zkr",
+      "email": "zluka.888@gmail.com"
+    }
+  ],
+  "autoload": {
+    "psr-4": {
+      "zkr\\": ""
+    },
+    "files": [
+      "helpers.php"
+    ]
+  }
+}
