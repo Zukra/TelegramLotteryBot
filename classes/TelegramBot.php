@@ -11,12 +11,11 @@ class TelegramBot {
     public function query($method, $params = []) {
         $url = $this->urlBasic . $this->token . "/" . $method;
         $url .= (!empty($params) ? "?" . http_build_query($params) : "");
-        $result = json_decode(file_get_contents($url));
 
-        return $result;
+        return json_decode(file_get_contents($url), true);
     }
 
-    public function getUpdates() {
+    public function getUpdatesOffset() {
         $response = $this->query("getUpdates", ["offset" => $this->updateId + 1]);
         // дабы отвечал только на последнее сообщение
         if (!empty($response->result)) {
@@ -24,6 +23,11 @@ class TelegramBot {
         }
 
         return $response->result;
+    }
+
+    public function getUpdates() {
+        $response = $this->query("getUpdates");
+        return !empty($response["result"]) ? $response : false;
     }
 
     public function sendMessage($chatId, $msg, $parse_mode = "") {
