@@ -4,7 +4,6 @@
  * https://api.telegram.org/bot480191787:AAGIhoCjqjD6Rm3zK9SIAbUzQLfCJeRt5M8/getUpdates
  *
  * 480191787        @emk_lotto_bot "EMK lottery"
- * 412846761        (My)
  * -1001283156137   Test group
  */
 
@@ -94,14 +93,18 @@ while (true) {
             }
         }
 
+        $isChange = false;
         if ($storeMemberCount != count($arStoredMembers)) { // если были новые пользователи
             $lotto->saveData($arStoredMembers, "members"); // сохранить новых пользователей
+            $isChange = true;
         }
         if ($ticketCount != count($arTickets)) {
             $lotto->saveData($arTickets, "tickets"); // сохранить билеты
+            $isChange = true;
         }
         if ($processDataCount != count($arProcessData)) {
             $lotto->saveData($arProcessData, "process"); // сохранить данные
+            $isChange = true;
         }
 
         /*
@@ -111,23 +114,24 @@ while (true) {
                 $bot->sendMessageToChats($arChatId, $ticketsMsg);
         */
 
-        // Create new PHPExcel object
-        $objPHPExcel = new PHPExcel();
+        if ($isChange) {
+            // Create new PHPExcel object
+            $objPHPExcel = new PHPExcel();
 
-        $lotto->reportToExcel($objPHPExcel, $arProcessData, $arStoredMembers);
+            $lotto->reportToExcel($objPHPExcel, $arProcessData, $arStoredMembers);
 
-        $lotto->membersToExcel($objPHPExcel, $arStoredMembers);
+            $lotto->membersToExcel($objPHPExcel, $arStoredMembers);
 
-        $lotto->processToExcel($objPHPExcel, $arProcessData);
+            $lotto->processToExcel($objPHPExcel, $arProcessData);
 
-        $lotto->ticketsToExcel($objPHPExcel, $arTickets);
+            $lotto->ticketsToExcel($objPHPExcel, $arTickets);
 
-        $objPHPExcel->setActiveSheetIndex(0);
+            $objPHPExcel->setActiveSheetIndex(0);
 
-
-        // Save Excel 2007 file
-        $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
-        $objWriter->save('data/results.xlsx');
+            // Save Excel 2007 file
+            $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
+            $objWriter->save('data/results.xlsx');
+        }
     }
 
 //    exit();
