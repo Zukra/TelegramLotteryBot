@@ -27,6 +27,7 @@ class TelegramBot {
 
     public function getUpdates() {
         $response = $this->query("getUpdates");
+
         return !empty($response["result"]) ? $response : false;
     }
 
@@ -43,5 +44,9 @@ class TelegramBot {
         foreach ($arChatId as $chatId) {
             $this->sendMessage($chatId, $msg, $mode);
         }
+    }
+
+    public function pinChatMessage($chatId, $messageId) {
+        return $this->query("pinChatMessage", ["chat_id" => $chatId, "message_id" => $messageId]);
     }
 }

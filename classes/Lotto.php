@@ -24,7 +24,7 @@ class Lotto {
         file_put_contents("data/" . strtolower($fileName) . '.php', $storageData);
     }
 
-    public function getAddedMembers($result) {
+    public function getAddedMembers($result, $arChatId) {
         $arMembers = [];
         foreach ($result as $update) {
             if (!isset($update["message"])) {
@@ -32,10 +32,23 @@ class Lotto {
             }
             $message = $update["message"];
             // is bot and not new member
-            if ($message["from"]["is_bot"] && empty($message["new_chat_member"])) {
+            if ($message["from"]["is_bot"] || !isset($message["new_chat_members"])
+                || !in_array($message["chat"]["id"], $arChatId)
+            ) {
                 continue;
-            } elseif (!empty($message["new_chat_member"]) && !$message['new_chat_member']["is_bot"]) {
+            } elseif (!empty($message["new_chat_members"])) {
                 // массив с новыми пользователями
+                $arNewChatMembers = [];
+                foreach ($message["new_chat_members"] as $newMember) {
+                    if ($newMember['is_bot']) continue;
+                    $arNewChatMembers[] = [
+                        "ID"         => $newMember["id"],
+                        "IS_BOT"     => $newMember["is_bot"],
+                        "FIRST_NAME" => $newMember["first_name"],
+                        "LAST_NAME"  => !empty($newMember["last_name"]) ? $newMember["last_name"] : "",
+                        "USERNAME"   => !empty($newMember["username"]) ? $newMember["username"] : ""
+                    ];
+                }
                 $arMembers[$update['update_id']] = [
                     "UPDATE_ID"  => $update['update_id'],
                     "DATE"       => $message['date'],
@@ -46,13 +59,7 @@ class Lotto {
                         "LAST_NAME"  => $message['from']["last_name"],
                         "USERNAME"   => !empty($message['from']["username"]) ? $message['from']["username"] : ""
                     ],
-                    "NEW_MEMBER" => [
-                        "ID"         => $message['new_chat_member']["id"],
-                        "IS_BOT"     => $message['new_chat_member']["is_bot"],
-                        "FIRST_NAME" => $message['new_chat_member']["first_name"],
-                        "LAST_NAME"  => !empty($message['new_chat_member']["last_name"]) ? $message['new_chat_member']["last_name"] : "",
-                        "USERNAME"   => !empty($message['new_chat_member']["username"]) ? $message['new_chat_member']["username"] : ""
-                    ]
+                    "NEW_MEMBER" => $arNewChatMembers
                 ];
             }
         }
@@ -138,7 +145,7 @@ class Lotto {
 
     public function ticketsToExcel($objPHPExcel, $arTickets) {
         $objPHPExcel->createSheet();
-        $objPHPExcel->setActiveSheetIndex(3);
+        $objPHPExcel->setActiveSheetIndex(2);
 
         $objPHPExcel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
         $objPHPExcel->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
@@ -156,8 +163,7 @@ class Lotto {
     }
 
     public function processToExcel($objPHPExcel, $arProcessData) {
-        $objPHPExcel->createSheet();
-        $objPHPExcel->setActiveSheetIndex(2);
+        $objPHPExcel->setActiveSheetIndex(0);
 
         $objPHPExcel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
         $objPHPExcel->getActiveSheet()->getColumnDimension('B')->setAutoSize(true);
@@ -187,7 +193,7 @@ class Lotto {
      * Вернуть первого приглашённого при выдаче билета за 2-го
      */
     public function getFirstInvitedMember($userId, $arProcessData) {
-        ksort($arProcessData); // повремени добавления
+        ksort($arProcessData); // по времени добавления
         foreach ($arProcessData as $element) {
             // приглашение этого пользователя и номер билета отсутствует
             if ($element["USER_ID"] == $userId && $element["TICKET_ID"] == 0) {
@@ -215,11 +221,12 @@ class Lotto {
                 if ($data["TICKET_ID"] == $ticket) {
                     $rows[] = [
                         "TICKET_ID" => $data["TICKET_ID"],
-                        "FROM"      => $arStoredMembers[$data["USER_ID"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["USER_ID"]]["LAST_NAME"],
+                        "FROM"      => $arStoredMembers[$data["USER_ID"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["USER_ID"]]["LAST_NAME"] . " " . $arStoredMembers[$data["USER_ID"]]["USERNAME"] . " (" . $data["USER_ID"] . ")",
                         "DATE"      => date("d-m-Y H:i:s", $data["DATE"]),
-                        "NEW"       => $arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"]
+                        "NEW"       => $arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"] . " " . $arStoredMembers[$data["NEW_MEMBER"]]["USERNAME"] . " (" . $data["NEW_MEMBER"] . ")"
                     ];
-                    unset($arProcessData[$data["UPDATE_ID"]]); // убираем уже обработанное
+                    $key = $data["UPDATE_ID"] . '_' . $data["DATE"] . "_" . $data["USER_ID"] . "_" . $data["NEW_MEMBER"];
+                    unset($arProcessData[$key]); // убираем уже обработанное
                 } else {
                     continue;
                 }
