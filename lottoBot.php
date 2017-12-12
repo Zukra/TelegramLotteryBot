@@ -1,10 +1,8 @@
 <?php
 /**
- * Telegram lottery bot
- * https://api.telegram.org/bot480191787:AAGIhoCjqjD6Rm3zK9SIAbUzQLfCJeRt5M8/getUpdates
- *
- * 480191787        @emk_lotto_bot "EMK lottery"
- * -1001283156137   Test group
+ * Metal.Place Lottery Bot
+ * https://api.telegram.org/bot482777748:AAHGzj_f88Lt1VmH7w4p4gmHVj6RcQWNLm8/getUpdates
+ * 482777748        @metal_place_lotto_bot
  */
 
 /** Error reporting */
@@ -22,19 +20,22 @@ use zkr\classes\TelegramBot;
 //$response = json_decode($data, true);
 
 $intervalSec = 10; // sec
-//$arChatId = [-1001283156137];
-$arChatId = [-1001324625767];
 
-$bot = new TelegramBot();
+$token = "482777748:AAHGzj_f88Lt1VmH7w4p4gmHVj6RcQWNLm8";
+//$arChatId = [-1001283156137];  // for test
+$arChatId = [-1001316620307];
+$urlRules = "https://t.me/hhhhhhttttg/2";
+//$urlXlsx = "https://metal.place/lottery/data/results.xlsx";
+
+$bot = new TelegramBot($token);
 $lotto = new Lotto();
 
-$bot->pinChatMessage($arChatId[0], 17);
+//$bot->pinChatMessage($arChatId[0], 17);
+//exit();
 
-while (!true) {
+while (true) {
     $response = $bot->getUpdates(); // получаем данные из чата
-
     if ($response && $response["ok"]) {
-
         $arTickets = $lotto->getTickets() ?: []; // получить выданные билеты
         ksort($arTickets);
         $last = end($arTickets);  // последний элемент
@@ -87,18 +88,21 @@ while (!true) {
                         $firstInvitedMemberKey = $firstInvitedMember["UPDATE_ID"] . '_' . $firstInvitedMember["DATE"] . "_" . $firstInvitedMember["USER_ID"] . "_" . $firstInvitedMember["NEW_MEMBER"];
                         $arProcessData[$firstInvitedMemberKey] = $firstInvitedMember;
                         $msg = $user["FROM"]["FIRST_NAME"] . " " . $user["FROM"]["LAST_NAME"]
-                            . " " . $user["FROM"]["USERNAME"] . " (" . $user["FROM"]["ID"] . ")"
-                            . " - присвоен билет номер " . $ticketNumber . PHP_EOL
+//                            . " " . $user["FROM"]["USERNAME"]
+                            . " (" . $user["FROM"]["ID"] . ")"
+                            . " - присвоен билет № " . $ticketNumber . PHP_EOL
                             . "за приглашение "
                             . $arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["FIRST_NAME"]
                             . " " . $arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["LAST_NAME"]
-                            . " " . $arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["USERNAME"]
+//                            . " " . $arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["USERNAME"]
                             . " (" . $arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["ID"] . ")"
                             . " и " . $newMember["FIRST_NAME"] . " " . $newMember["LAST_NAME"]
-                            . " " . $newMember["USERNAME"] . " (" . $newMember["ID"] . ")"
-                            . PHP_EOL . "[Правила конкурса](https://t.me/publgggg/6)";
+//                            . " " . $newMember["USERNAME"]
+                            . " (" . $newMember["ID"] . ")"
+                            . PHP_EOL . "[Правила конкурса]({$urlRules})";
+//                            . PHP_EOL . "[Текущие результаты]({$urlXlsx})";
 
-                        $bot->sendMessageToChats($arChatId, $msg, "markdown");
+                        $bot->sendMessageToChats($arChatId, $msg, "markdown", true);
 
                         $ticketNumber++;
                     }

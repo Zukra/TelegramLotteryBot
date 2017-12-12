@@ -4,18 +4,27 @@ namespace zkr\classes;
 
 
 class TelegramBot {
-    protected $token = "480191787:AAGIhoCjqjD6Rm3zK9SIAbUzQLfCJeRt5M8";
+    protected $token = "";
     protected $urlBasic = "https://api.telegram.org/bot";
     protected $updateId = 0;
 
-    public function query($method, $params = []) {
+    /**
+     * TelegramBot constructor.
+     * @param string $token
+     */
+    public function __construct($token) {
+        $this->token = $token;
+    }
+
+
+    function query($method, $params = []) {
         $url = $this->urlBasic . $this->token . "/" . $method;
         $url .= (!empty($params) ? "?" . http_build_query($params) : "");
 
         return json_decode(file_get_contents($url), true);
     }
 
-    public function getUpdatesOffset() {
+    function getUpdatesOffset() {
         $response = $this->query("getUpdates", ["offset" => $this->updateId + 1]);
         // дабы отвечал только на последнее сообщение
         if (!empty($response->result)) {
@@ -25,28 +34,29 @@ class TelegramBot {
         return $response->result;
     }
 
-    public function getUpdates() {
+    function getUpdates() {
         $response = $this->query("getUpdates");
 
         return !empty($response["result"]) ? $response : false;
     }
 
-    public function sendMessage($chatId, $msg, $parse_mode = "") {
+    function sendMessage($chatId, $msg, $parse_mode = "", $disableWebPagePreview = false) {
 
         return $this->query("sendMessage", [
-            "chat_id"    => $chatId,
-            "text"       => $msg,
-            "parse_mode" => $parse_mode
+            "chat_id"                  => $chatId,
+            "text"                     => $msg,
+            "parse_mode"               => $parse_mode,
+            "disable_web_page_preview" => $disableWebPagePreview
         ]);
     }
 
-    public function sendMessageToChats($arChatId = [], $msg = "", $mode = "") {
+    function sendMessageToChats($arChatId = [], $msg = "", $mode = "", $disableWebPagePreview = false) {
         foreach ($arChatId as $chatId) {
-            $this->sendMessage($chatId, $msg, $mode);
+            $this->sendMessage($chatId, $msg, $mode, $disableWebPagePreview);
         }
     }
 
-    public function pinChatMessage($chatId, $messageId) {
+    function pinChatMessage($chatId, $messageId) {
         return $this->query("pinChatMessage", ["chat_id" => $chatId, "message_id" => $messageId]);
     }
 }
