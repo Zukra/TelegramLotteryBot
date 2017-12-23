@@ -24,14 +24,14 @@ class TelegramBot {
         return json_decode(file_get_contents($url), true);
     }
 
-    function getUpdatesOffset() {
+    function getUpdatesOffset($offset = 50) {
         $response = $this->query("getUpdates", ["offset" => $this->updateId + 1]);
         // дабы отвечал только на последнее сообщение
-        if (!empty($response->result)) {
-            $this->updateId = $response->result[count($response->result) - 1]->update_id;
+        if ($response && $response["ok"]) {
+            $this->updateId = $response['result'][count($response['result']) - 1]["update_id"] - $offset ;
         }
 
-        return $response->result;
+        return !empty($response["result"]) ? $response : false;
     }
 
     function getUpdates() {
@@ -40,19 +40,20 @@ class TelegramBot {
         return !empty($response["result"]) ? $response : false;
     }
 
-    function sendMessage($chatId, $msg, $parse_mode = "", $disableWebPagePreview = false) {
+    function sendMessage($chatId, $msg, $parse_mode = "", $disableWebPagePreview = false, $disableNotification = false) {
 
         return $this->query("sendMessage", [
             "chat_id"                  => $chatId,
             "text"                     => $msg,
             "parse_mode"               => $parse_mode,
-            "disable_web_page_preview" => $disableWebPagePreview
+            "disable_web_page_preview" => $disableWebPagePreview,
+            "disable_notification"     => $disableNotification
         ]);
     }
 
-    function sendMessageToChats($arChatId = [], $msg = "", $mode = "", $disableWebPagePreview = false) {
+    function sendMessageToChats($arChatId = [], $msg = "", $mode = "", $disableWebPagePreview = false, $disableNotification = false) {
         foreach ($arChatId as $chatId) {
-            $this->sendMessage($chatId, $msg, $mode, $disableWebPagePreview);
+            $this->sendMessage($chatId, $msg, $mode, $disableWebPagePreview, $disableNotification);
         }
     }
 

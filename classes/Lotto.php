@@ -31,7 +31,7 @@ class Lotto {
                 continue;
             }
             $message = $update["message"];
-            // is bot and not new member
+            // this is bot and not new member
             if ($message["from"]["is_bot"] || !isset($message["new_chat_members"])
                 || !in_array($message["chat"]["id"], $arChatId)
             ) {

@@ -1,8 +1,6 @@
 <?php
 /**
  * Metal.Place Lottery Bot
- * https://api.telegram.org/bot482777748:AAHGzj_f88Lt1VmH7w4p4gmHVj6RcQWNLm8/getUpdates
- * 482777748        @metal_place_lotto_bot
  */
 
 /** Error reporting */
@@ -12,6 +10,7 @@ ini_set('display_startup_errors', TRUE);
 date_default_timezone_set('Europe/Moscow');
 
 require_once __DIR__ . '/vendor/autoload.php';
+require __DIR__ . '/config.php';
 
 use zkr\classes\Lotto;
 use zkr\classes\TelegramBot;
@@ -19,23 +18,26 @@ use zkr\classes\TelegramBot;
 //$data = include __DIR__ . '/data/test_data.php';  // тестовые данные
 //$response = json_decode($data, true);
 
-$intervalSec = 10; // sec
-
-$token = "482777748:AAHGzj_f88Lt1VmH7w4p4gmHVj6RcQWNLm8";
-//$arChatId = [-1001283156137];  // for test
-$arChatId = [-1001316620307];
-$urlRules = "https://t.me/hhhhhhttttg/2";
-//$urlXlsx = "https://metal.place/lottery/data/results.xlsx";
 
 $bot = new TelegramBot($token);
 $lotto = new Lotto();
 
 //$bot->pinChatMessage($arChatId[0], 17);
-//exit();
 
 while (true) {
-    $response = $bot->getUpdates(); // получаем данные из чата
+//    $response = $bot->getUpdates(); // получаем данные из чата
+    $response = $bot->getUpdatesOffset(30); // получаем последние 30 сообщений
     if ($response && $response["ok"]) {
+
+        $lastUpdateId = $response["result"][count($response["result"]) - 1]["update_id"]; // последний update id
+        $msg = '';
+        foreach ($response["result"] as $result) {
+            $msg .= PHP_EOL. $result['message']['text'];
+        }
+        $bot->sendMessageToChats($arChatId, $lastUpdateId
+            . '  ' . count($response["result"]) . ' ' . $msg, "markdown", true, true);
+
+        /*
         $arTickets = $lotto->getTickets() ?: []; // получить выданные билеты
         ksort($arTickets);
         $last = end($arTickets);  // последний элемент
@@ -49,8 +51,6 @@ while (true) {
 
         $arProcessData = $lotto->getProcessData() ?: []; // основные данные
         $processDataCount = count($arProcessData);
-
-        $lastUpdateId = $response["result"][count($response["result"]) - 1]["update_id"]; // последний update id
 
         foreach ($arNewMembers as $user) {
             // если приглашающий отсутствует - добавляем в массив пользователей
@@ -102,7 +102,7 @@ while (true) {
                             . PHP_EOL . "[Правила конкурса]({$urlRules})";
 //                            . PHP_EOL . "[Текущие результаты]({$urlXlsx})";
 
-                        $bot->sendMessageToChats($arChatId, $msg, "markdown", true);
+                        $bot->sendMessageToChats($arChatId, $msg, "markdown", true, true);
 
                         $ticketNumber++;
                     }
@@ -148,6 +148,7 @@ while (true) {
             $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
             $objWriter->save('data/process.xlsx');
         }
+        */
     }
 
 //    exit();
