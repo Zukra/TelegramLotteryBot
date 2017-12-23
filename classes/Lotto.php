@@ -33,7 +33,7 @@ class Lotto {
             $message = $update["message"];
             // this is bot and not new member
             if ($message["from"]["is_bot"] || !isset($message["new_chat_members"])
-                || !in_array($message["chat"]["id"], $arChatId)
+//                || !in_array($message["chat"]["id"], $arChatId)
             ) {
                 continue;
             } elseif (!empty($message["new_chat_members"])) {
@@ -56,7 +56,7 @@ class Lotto {
                         "ID"         => $message['from']["id"],
                         "IS_BOT"     => $message['from']["is_bot"],
                         "FIRST_NAME" => $message['from']["first_name"],
-                        "LAST_NAME"  => $message['from']["last_name"],
+                        "LAST_NAME"  => isset($message['from']["last_name"]) ? $message['from']["last_name"] : "",
                         "USERNAME"   => !empty($message['from']["username"]) ? $message['from']["username"] : ""
                     ],
                     "NEW_MEMBER" => $arNewChatMembers
@@ -262,5 +262,31 @@ class Lotto {
             }
             $i = $i + $j + 1;
         }
+    }
+
+    public function getChanceOfWinning($arTickets, $arStoredMembers, $memberCnt = 10) {
+        $numberTickets = count($arTickets); // всего присвоенных билетов
+        $arMemberTicketCnt = array_count_values($arTickets); // количество билетов каждого участника
+
+        arsort($arMemberTicketCnt); // по количеству билетов
+        $arMemberTicketCnt = array_slice($arMemberTicketCnt, 0, $memberCnt, true);
+
+        $result = [];
+        $msg = "";
+        foreach ($arMemberTicketCnt as $memberId => $cnt) {
+            $result[$memberId] = [
+                "FIRST_NAME" => $arStoredMembers[$memberId]["FIRST_NAME"],
+                "LAST_NAME"  => $arStoredMembers[$memberId]["LAST_NAME"],
+                "USERNAME"   => $arStoredMembers[$memberId]["USERNAME"],
+                "TICKETS"    => $cnt,
+                "CHANCE"     => round($cnt / $numberTickets * 100, 2)
+            ];
+            $msg .= $arStoredMembers[$memberId]["FIRST_NAME"] . "  " . $arStoredMembers[$memberId]["LAST_NAME"]
+                . " (" . $memberId . ")"
+                . " => билетов " . $cnt . ","
+                . " шанс выигрыша " . round($cnt / $numberTickets * 100, 2) . "%" . PHP_EOL;
+        }
+
+        return $msg;
     }
 }

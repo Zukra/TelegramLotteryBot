@@ -15,9 +15,13 @@ require __DIR__ . '/config.php';
 use zkr\classes\Lotto;
 use zkr\classes\TelegramBot;
 
-//$data = include __DIR__ . '/data/test_data.php';  // тестовые данные
-//$response = json_decode($data, true);
+/*
+$data = include __DIR__ . '/data/test_data.php';  // тестовые данные
+$response = json_decode($data, true);
+*/
 
+$starTime = time();  // время запуска
+$timeForMoreSend = $starTime + $intervalSecondSec; // время отправки шансов
 
 $bot = new TelegramBot($token);
 $lotto = new Lotto();
@@ -25,19 +29,9 @@ $lotto = new Lotto();
 //$bot->pinChatMessage($arChatId[0], 17);
 
 while (true) {
-//    $response = $bot->getUpdates(); // получаем данные из чата
     $response = $bot->getUpdatesOffset(30); // получаем последние 30 сообщений
     if ($response && $response["ok"]) {
 
-        $lastUpdateId = $response["result"][count($response["result"]) - 1]["update_id"]; // последний update id
-        $msg = '';
-        foreach ($response["result"] as $result) {
-            $msg .= PHP_EOL. $result['message']['text'];
-        }
-        $bot->sendMessageToChats($arChatId, $lastUpdateId
-            . '  ' . count($response["result"]) . ' ' . $msg, "markdown", true, true);
-
-        /*
         $arTickets = $lotto->getTickets() ?: []; // получить выданные билеты
         ksort($arTickets);
         $last = end($arTickets);  // последний элемент
@@ -123,6 +117,13 @@ while (true) {
             $lotto->saveData($arProcessData, "process"); // сохранить данные
             $isChange = true;
         }
+
+        if (time() >= $timeForMoreSend) {
+            $chanceText = $lotto->getChanceOfWinning($arTickets, $arStoredMembers, $memberCnt);
+            $bot->sendMessageToChats($arChatId, $chanceText, "markdown", true, true);
+            $timeForMoreSend = time() + $intervalSecondSec;
+        }
+
         if ($isChange) {
             // Create new PHPExcel object
             $objPHPExcel = new PHPExcel();
@@ -148,7 +149,6 @@ while (true) {
             $objWriter = PHPExcel_IOFactory::createWriter($objPHPExcel, 'Excel2007');
             $objWriter->save('data/process.xlsx');
         }
-        */
     }
 
 //    exit();
