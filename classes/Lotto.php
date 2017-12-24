@@ -4,6 +4,11 @@ namespace zkr\classes;
 
 
 class Lotto {
+    public $arStoredMembers = [];    // all stored members
+    public $arTickets = [];          // all stored tickets (выданные билеты)
+    public $arNewMembers = [];       // new members in chat
+    public $arProcessData = [];      // general data (кто кого пригласил, присвоенные билеты)
+    public $arMemberTicketsCnt = []; // количество билетов участника
 
     public function getMembers() {
         return $this->getData("members");
@@ -31,7 +36,7 @@ class Lotto {
                 continue;
             }
             $message = $update["message"];
-            // this is bot and not new member
+            // this is bot and not new member and correct chat
             if ($message["from"]["is_bot"] || !isset($message["new_chat_members"])
 //                || !in_array($message["chat"]["id"], $arChatId)
             ) {
@@ -75,9 +80,9 @@ class Lotto {
         return $this->getData("process");
     }
 
-    public function getNumberInvitedMembers($userId, $arProcessData) {
+    public function getNumberInvitedMembers($userId) {
         $countInvite = 0;
-        foreach ($arProcessData as $element) {
+        foreach ($this->arProcessData as $element) {
             if ($element["USER_ID"] == $userId) {
                 $countInvite++;
             }
@@ -86,29 +91,29 @@ class Lotto {
         return $countInvite;
     }
 
-    public function getInviteReport($arProcessData, $arStoredMembers) {
+    public function getInviteReport() {
         $msg = "";
-        foreach ($arProcessData as $data) {
+        foreach ($this->arProcessData as $data) {
             $msg .= date("d-m-Y H:i:s", $data["DATE"])
-                . " " . $arStoredMembers[$data["USER_ID"]]["FIRST_NAME"]
-                . " " . $arStoredMembers[$data["USER_ID"]]["LAST_NAME"]
-                . " " . $arStoredMembers[$data["USER_ID"]]["USERNAME"]
+                . " " . $this->arStoredMembers[$data["USER_ID"]]["FIRST_NAME"]
+                . " " . $this->arStoredMembers[$data["USER_ID"]]["LAST_NAME"]
+                . " " . $this->arStoredMembers[$data["USER_ID"]]["USERNAME"]
                 . " invited"
-                . " " . $arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"]
-                . " " . $arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"]
-                . " " . $arStoredMembers[$data["NEW_MEMBER"]]["USERNAME"]
+                . " " . $this->arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"]
+                . " " . $this->arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"]
+                . " " . $this->arStoredMembers[$data["NEW_MEMBER"]]["USERNAME"]
                 . PHP_EOL;
         }
 
         return $msg;
     }
 
-    public function getTicketsReport($arStoredMembers, $arTickets) {
+    public function getTicketsReport() {
         $msg = "";
-        foreach ($arTickets as $number => $userId) {
-            $msg .= $arStoredMembers[$userId]["FIRST_NAME"]
-                . " " . $arStoredMembers[$userId]["LAST_NAME"]
-                . " " . $arStoredMembers[$userId]["USERNAME"]
+        foreach ($this->arTickets as $number => $userId) {
+            $msg .= $this->arStoredMembers[$userId]["FIRST_NAME"]
+                . " " . $this->arStoredMembers[$userId]["LAST_NAME"]
+                . " " . $this->arStoredMembers[$userId]["USERNAME"]
                 . " ticket number " . $number
                 . PHP_EOL;
         }
@@ -116,7 +121,7 @@ class Lotto {
         return $msg;
     }
 
-    public function membersToExcel($objPHPExcel, $arStoredMembers) {
+    public function membersToExcel($objPHPExcel) {
         $objPHPExcel->createSheet();
         $objPHPExcel->setActiveSheetIndex(1)
             ->setCellValue('A1', 'USER_ID')
@@ -132,7 +137,7 @@ class Lotto {
         $objPHPExcel->getActiveSheet()->getColumnDimension('E')->setAutoSize(true);
 
         $i = 3;
-        foreach ($arStoredMembers as $member) {
+        foreach ($this->arStoredMembers as $member) {
             $objPHPExcel->getActiveSheet()->setCellValue("A{$i}", $member["ID"]);
             $objPHPExcel->getActiveSheet()->setCellValue("B{$i}", $member["IS_BOT"]);
             $objPHPExcel->getActiveSheet()->setCellValue("C{$i}", $member["FIRST_NAME"]);
@@ -143,7 +148,7 @@ class Lotto {
 
     }
 
-    public function ticketsToExcel($objPHPExcel, $arTickets) {
+    public function ticketsToExcel($objPHPExcel) {
         $objPHPExcel->createSheet();
         $objPHPExcel->setActiveSheetIndex(2);
 
@@ -155,14 +160,14 @@ class Lotto {
             ->setCellValue('B1', 'USER_ID');
 
         $i = 3;
-        foreach ($arTickets as $ticketNumber => $userId) {
+        foreach ($this->arTickets as $ticketNumber => $userId) {
             $objPHPExcel->getActiveSheet()->setCellValue("A{$i}", $ticketNumber);
             $objPHPExcel->getActiveSheet()->setCellValue("B{$i}", $userId);
             $i++;
         }
     }
 
-    public function processToExcel($objPHPExcel, $arProcessData) {
+    public function processToExcel($objPHPExcel) {
         $objPHPExcel->setActiveSheetIndex(0);
 
         $objPHPExcel->getActiveSheet()->getColumnDimension('A')->setAutoSize(true);
@@ -179,7 +184,7 @@ class Lotto {
             ->setCellValue('E1', 'NEW_MEMBER');
 
         $i = 3;
-        foreach ($arProcessData as $data) {
+        foreach ($this->arProcessData as $data) {
             $objPHPExcel->getActiveSheet()->setCellValue("A{$i}", $data["UPDATE_ID"]);
             $objPHPExcel->getActiveSheet()->setCellValue("B{$i}", date("d-m-Y H:i:s", $data["DATE"]));
             $objPHPExcel->getActiveSheet()->setCellValue("C{$i}", $data["USER_ID"]);
@@ -192,7 +197,8 @@ class Lotto {
     /**
      * Вернуть первого приглашённого при выдаче билета за 2-го
      */
-    public function getFirstInvitedMember($userId, $arProcessData) {
+    public function getFirstInvitedMember($userId) {
+        $arProcessData = $this->arProcessData;
         ksort($arProcessData); // по времени добавления
         foreach ($arProcessData as $element) {
             // приглашение этого пользователя и номер билета отсутствует
@@ -204,7 +210,8 @@ class Lotto {
         return false;
     }
 
-    public function reportToExcel($objPHPExcel, $arProcessData, $arStoredMembers) {
+    public function reportToExcel($objPHPExcel) {
+        $arProcessData = $this->arProcessData;
         $arTickets = [];  // выданные билеты
         foreach ($arProcessData as $data) {
             if ($data["TICKET_ID"] == 0) continue;
@@ -221,9 +228,9 @@ class Lotto {
                 if ($data["TICKET_ID"] == $ticket) {
                     $rows[] = [
                         "TICKET_ID" => $data["TICKET_ID"],
-                        "FROM"      => $arStoredMembers[$data["USER_ID"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["USER_ID"]]["LAST_NAME"] . " " . $arStoredMembers[$data["USER_ID"]]["USERNAME"] . " (" . $data["USER_ID"] . ")",
+                        "FROM"      => $this->arStoredMembers[$data["USER_ID"]]["FIRST_NAME"] . " " . $this->arStoredMembers[$data["USER_ID"]]["LAST_NAME"] . " " . $this->arStoredMembers[$data["USER_ID"]]["USERNAME"] . " (" . $data["USER_ID"] . ")",
                         "DATE"      => date("d-m-Y H:i:s", $data["DATE"]),
-                        "NEW"       => $arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"] . " " . $arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"] . " " . $arStoredMembers[$data["NEW_MEMBER"]]["USERNAME"] . " (" . $data["NEW_MEMBER"] . ")"
+                        "NEW"       => $this->arStoredMembers[$data["NEW_MEMBER"]]["FIRST_NAME"] . " " . $this->arStoredMembers[$data["NEW_MEMBER"]]["LAST_NAME"] . " " . $this->arStoredMembers[$data["NEW_MEMBER"]]["USERNAME"] . " (" . $data["NEW_MEMBER"] . ")"
                     ];
                     $key = $data["UPDATE_ID"] . '_' . $data["DATE"] . "_" . $data["USER_ID"] . "_" . $data["NEW_MEMBER"];
                     unset($arProcessData[$key]); // убираем уже обработанное
@@ -264,29 +271,40 @@ class Lotto {
         }
     }
 
-    public function getChanceOfWinning($arTickets, $arStoredMembers, $memberCnt = 10) {
-        $numberTickets = count($arTickets); // всего присвоенных билетов
-        $arMemberTicketCnt = array_count_values($arTickets); // количество билетов каждого участника
+    public function getChanceOfWinning($memberCnt = 0) {
+        $numberTickets = count($this->arTickets); // всего присвоенных билетов
+        $arMemberTicketCnt = array_count_values($this->arTickets); // количество билетов каждого участника
 
         arsort($arMemberTicketCnt); // по количеству билетов
-        $arMemberTicketCnt = array_slice($arMemberTicketCnt, 0, $memberCnt, true);
+        if ($memberCnt > 0) { // если задано количество участников для показа
+            $arMemberTicketCnt = array_slice($arMemberTicketCnt, 0, $memberCnt, true);
+        }
 
-        $result = [];
+//        $result = [];
         $msg = "";
         foreach ($arMemberTicketCnt as $memberId => $cnt) {
+            /*
             $result[$memberId] = [
-                "FIRST_NAME" => $arStoredMembers[$memberId]["FIRST_NAME"],
-                "LAST_NAME"  => $arStoredMembers[$memberId]["LAST_NAME"],
-                "USERNAME"   => $arStoredMembers[$memberId]["USERNAME"],
+                "FIRST_NAME" => $this->arStoredMembers[$memberId]["FIRST_NAME"],
+                "LAST_NAME"  => $this->arStoredMembers[$memberId]["LAST_NAME"],
+                "USERNAME"   => $this->arStoredMembers[$memberId]["USERNAME"],
                 "TICKETS"    => $cnt,
                 "CHANCE"     => round($cnt / $numberTickets * 100, 2)
             ];
-            $msg .= $arStoredMembers[$memberId]["FIRST_NAME"] . "  " . $arStoredMembers[$memberId]["LAST_NAME"]
+            */
+            $msg .= $this->arStoredMembers[$memberId]["FIRST_NAME"]
+                . "  " . $this->arStoredMembers[$memberId]["LAST_NAME"]
                 . " (" . $memberId . ")"
                 . " => билетов " . $cnt . ","
                 . " шанс выигрыша " . round($cnt / $numberTickets * 100, 2) . "%" . PHP_EOL;
         }
 
         return $msg;
+    }
+
+    public function updateMemberTicketsCnt() {
+        $this->arMemberTicketsCnt = array_count_values($this->arTickets); // количество билетов каждого участника
+
+        arsort($this->arMemberTicketsCnt); // по количеству билетов
     }
 }

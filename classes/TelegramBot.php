@@ -28,7 +28,7 @@ class TelegramBot {
         $response = $this->query("getUpdates", ["offset" => $this->updateId + 1]);
         // дабы отвечал только на последнее сообщение
         if ($response && $response["ok"]) {
-            $this->updateId = $response['result'][count($response['result']) - 1]["update_id"] - $offset ;
+            $this->updateId = $response['result'][count($response['result']) - 1]["update_id"] - $offset;
         }
 
         return !empty($response["result"]) ? $response : false;
@@ -40,20 +40,15 @@ class TelegramBot {
         return !empty($response["result"]) ? $response : false;
     }
 
-    function sendMessage($chatId, $msg, $parse_mode = "", $disableWebPagePreview = false, $disableNotification = false) {
+    function sendMessage($option = []) {
 
-        return $this->query("sendMessage", [
-            "chat_id"                  => $chatId,
-            "text"                     => $msg,
-            "parse_mode"               => $parse_mode,
-            "disable_web_page_preview" => $disableWebPagePreview,
-            "disable_notification"     => $disableNotification
-        ]);
+        return $this->query("sendMessage", $option);
     }
 
-    function sendMessageToChats($arChatId = [], $msg = "", $mode = "", $disableWebPagePreview = false, $disableNotification = false) {
+    function sendMessageToChats($arChatId = [], $opt = []) {
         foreach ($arChatId as $chatId) {
-            $this->sendMessage($chatId, $msg, $mode, $disableWebPagePreview, $disableNotification);
+            $opt["chat_id"] = $chatId;
+            $this->sendMessage($opt);
         }
     }
 
