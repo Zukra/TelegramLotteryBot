@@ -38,7 +38,7 @@ class Lotto {
             $message = $update["message"];
             // this is bot and not new member and correct chat
             if ($message["from"]["is_bot"] || !isset($message["new_chat_members"])
-//                || !in_array($message["chat"]["id"], $arChatId)
+                || !in_array($message["chat"]["id"], $arChatId)
             ) {
                 continue;
             } elseif (!empty($message["new_chat_members"])) {
@@ -281,7 +281,7 @@ class Lotto {
         }
 
 //        $result = [];
-        $msg = "";
+        $msg = "<strong>ТОП $memberCnt участников с максимальной вероятностью выигрыша</strong>" . PHP_EOL;
         foreach ($arMemberTicketCnt as $memberId => $cnt) {
             /*
             $result[$memberId] = [
@@ -293,10 +293,10 @@ class Lotto {
             ];
             */
             $msg .= $this->arStoredMembers[$memberId]["FIRST_NAME"]
-                . "  " . $this->arStoredMembers[$memberId]["LAST_NAME"]
-                . " (" . $memberId . ")"
-                . " => билетов " . $cnt . ","
-                . " шанс выигрыша " . round($cnt / $numberTickets * 100, 2) . "%" . PHP_EOL;
+                . (!empty($this->arStoredMembers[$memberId]["LAST_NAME"]) ? " " . $this->arStoredMembers[$memberId]["LAST_NAME"] : "")
+//                . " (" . $memberId . ")"
+//                . " — билетов " . $cnt . ", "
+                . " вероятность победы — " . round($cnt / $numberTickets * 100, 2) . "%" . PHP_EOL;
         }
 
         return $msg;
