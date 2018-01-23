@@ -30,6 +30,7 @@ $lotto = new Lotto();
 $isChange = false;  // if something changes
 
 while (true) {
+    $currentTime = time();
     // update config.cfg with out restart script
     if (file_exists($fileCfg)) {
         clearstatcache();
@@ -42,26 +43,38 @@ while (true) {
         exit();
     }
 
-    /*    $data = include 'data/test_data.php';  // тестовые данные
-        $response = json_decode($data, true);*/
-
     $response = $bot->getUpdatesOffset($config['lastMessages']); // получаем последние сообщений
 
+    /*
+    $data = include 'data/test_data.php';  // тестовые данные
+    $response = json_decode($data, true);
+    */
+
     if ($response && $response["ok"]) {
-        $lastMsg = $response["result"][count($response["result"]) - 1];
-        $arAdministrators = $bot->getChatAdministrators($lastMsg["message"]["chat"]["id"]); // get chat admins
+//        $lastMsg = $response["result"][count($response["result"]) - 1];
+//        $lastMsg["message"] = $lastMsg["message"] ? : $lastMsg["edited_message"];
+//        foreach ($response["result"] as $message) {
+        /*
+        if (!in_array($message["message"]["text"], ["/stop", "/show"])) {
+            continue;
+        }
+        $arAdministrators = $bot->getChatAdministrators($message["message"]["chat"]["id"]); // get chat admins
         $arAdminsIds = $bot->getAdminsIds($arAdministrators);
-        if (in_array($lastMsg["message"]["from"]["id"], $arAdminsIds)) {
-            switch ($lastMsg["message"]["text"]) {
+        if (in_array($message["message"]["from"]["id"], $arAdminsIds)) {
+            switch ($message["message"]["text"]) {
                 case "/stop":
                     $bot->sendMessageToChats($config['arChatId'], ["text" => "The bot is stopped.", "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
                     exit();
                     break;
                 case "/show" :
-                    $bot->sendMessageToChats($config['arChatId'], ["text" => "testing command" . $lastMsg["message"]["text"], "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
+                    $bot->sendMessageToChats($config['arChatId'], ["text" => "testing command" . $message["message"]["text"], "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
+                    $bot->deleteMessage($config['arChatId'], $message["message"]["message_id"]);
                     break;
             }
         }
+        */
+//        }
+
         $lotto->arTickets = $lotto->getTickets() ?: []; // get saved выданные билеты
         $ticketCount = count($lotto->arTickets);
         ksort($lotto->arTickets);
@@ -77,10 +90,10 @@ while (true) {
         $lotto->arNewMembers = $lotto->getAddedMembers($response["result"], $config['arChatId']); // новые пользователи в чате
 
         foreach ($lotto->arNewMembers as $user) {
-            if (empty($user["FROM"]["STATUS_IN_CHANNEL"])) {
-                $isChange = true;
-                $user["FROM"]["STATUS_IN_CHANNEL"] = $bot->inChannel($user["FROM"]["ID"], $config['channel']['name']);  // check user status in channel
-            }
+//            if (empty($user["FROM"]["STATUS_IN_CHANNEL"])) {
+//                $isChange = true;
+//                $user["FROM"]["STATUS_IN_CHANNEL"] = $bot->inChannel($user["FROM"]["ID"], $config['channel']['name']);  // check user status in channel
+//            }
             // если приглашающий отсутствует - добавляем в массив пользователей
             if (!isset($lotto->arStoredMembers[$user["FROM"]["ID"]])) {
                 $lotto->arStoredMembers[$user["FROM"]["ID"]] = $user["FROM"];  // add new member
@@ -88,10 +101,10 @@ while (true) {
             // если это новый приглашённый пользовватель - добавляем, записываем данные и выдаём билет
             foreach ($user["NEW_MEMBER"] as $newMember) {
                 if (!isset($lotto->arStoredMembers[$newMember["ID"]])) {
-                    if (empty($newMember["STATUS_IN_CHANNEL"])) {
-                        $isChange = true;
-                        $newMember["STATUS_IN_CHANNEL"] = $bot->inChannel($newMember["ID"], $config['channel']['name']);  // check user status in channel
-                    }
+//                    if (empty($newMember["STATUS_IN_CHANNEL"])) {
+//                        $isChange = true;
+//                        $newMember["STATUS_IN_CHANNEL"] = $bot->inChannel($newMember["ID"], $config['channel']['name']);  // check user status in channel
+//                    }
                     $lotto->arStoredMembers[$newMember["ID"]] = $newMember; // add new member
 
                     $key = $user["UPDATE_ID"] . '_' . $user["DATE"] . "_" . $user["FROM"]["ID"] . "_" . $newMember["ID"];
@@ -124,16 +137,16 @@ while (true) {
 
                         $msg = $user["FROM"]["FIRST_NAME"]
                             . (!empty($user["FROM"]["LAST_NAME"]) ? " " . $user["FROM"]["LAST_NAME"] : "")
-                            . " status in " . $config['channel']['name'] . " - " . ($user["FROM"]["STATUS_IN_CHANNEL"] ?: "unregistered") . PHP_EOL
+//                            . " status in " . $config['channel']['name'] . " - " . ($user["FROM"]["STATUS_IN_CHANNEL"] ?: "unregistered") . PHP_EOL
 //                            . " " . $user["FROM"]["USERNAME"] . " (" . $user["FROM"]["ID"] . ")"
                             . " — присвоен билет №" . $ticketNumber
                             . " за приглашение " . $lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["FIRST_NAME"]
                             . (!empty($lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["LAST_NAME"]) ? " " . $lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["LAST_NAME"] : "")
-                            . " status in " . $config['channel']['name'] . " - " . ($lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["STATUS_IN_CHANNEL"] ?: "unregistered") . PHP_EOL
+//                            . " status in " . $config['channel']['name'] . " - " . ($lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["STATUS_IN_CHANNEL"] ?: "unregistered") . PHP_EOL
 //                            . " " . $lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["USERNAME"] . " (" . $lotto->arStoredMembers[$firstInvitedMember["NEW_MEMBER"]]["ID"] . ")"
                             . " и " . $newMember["FIRST_NAME"]
                             . (!empty($newMember["LAST_NAME"]) ? " " . $newMember["LAST_NAME"] : "")
-                            . " status in " . $config['channel']['name'] . " - " . ($newMember["STATUS_IN_CHANNEL"] ?: "unregistered")
+//                            . " status in " . $config['channel']['name'] . " - " . ($newMember["STATUS_IN_CHANNEL"] ?: "unregistered")
 //                            . " " . $newMember["USERNAME"] . " (" . $newMember["ID"] . ")"
                             . PHP_EOL
                             . "Вероятность победы — " . round($lotto->arMemberTicketsCnt[$user["FROM"]["ID"]] / count($lotto->arTickets) * 100, 2) . "%"
@@ -163,16 +176,37 @@ while (true) {
             $isChange = true;
         }
 
-        if (time() >= $timeForMoreSend) {
-            $chanceText = $lotto->getChanceOfWinning($config['memberCnt']);
-            $bot->sendMessageToChats($config['arChatId'], ["text" => $chanceText, "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
-            $timeForMoreSend = time() + $config['intervalSecondSec'];
+        // вывод ТОП 10
+        if ($config['showTop']) {
+            $isTimeShowTop = false;  // настало ли время вывода
+            // задано конкретное время вывода
+            if (count($config['arSpecificTime']) > 0) {
+                foreach ($config['arSpecificTime'] as $item) {
+                    if ($currentTime >= strtotime($item) && $currentTime <= (strtotime($item) + $config['intervalSec'] + 3)) {
+                        $isTimeShowTop = true;
+                        break;
+                    }
+                }
+                // иначе, выводим по заданному интервалу
+            } elseif ($currentTime >= $timeForMoreSend) {
+                $isTimeShowTop = true;
+                $timeForMoreSend = $currentTime + $config['intervalSecondSec'];
+            }
+            if ($isTimeShowTop) {
+                $chanceText = $lotto->getChanceOfWinning($config['memberCnt']);
+                $chanceText .= "<a href=\"{$config['urlRules']}\">Правила конкурса</a>";
+                $bot->sendMessageToChats($config['arChatId'], ["text" => $chanceText, "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
+            }
         }
+
+        /*
+        // output to channel
         if (time() >= $timeForChannelSend) {
             $chanceText = $lotto->getChanceOfWinning($config['memberCnt']);
             $bot->sendMessageToChats($config['channel']['id'], ["text" => $chanceText, "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
             $timeForChannelSend = time() + $config['channel']['interval'];
         }
+        */
 
         if ($config['xmlReports'] && $isChange) {
             // Create new PHPExcel object
