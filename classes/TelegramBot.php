@@ -8,6 +8,7 @@ use GuzzleHttp\Psr7;
 
 class TelegramBot {
     protected $token = "";
+    public $info = [];
     protected $urlBasic = "https://api.telegram.org/bot";
     protected $updateId = 0;
 
@@ -17,18 +18,14 @@ class TelegramBot {
      */
     function __construct($token) {
         $this->token = $token;
+        $this->info = $this->getMe();
     }
 
     function query($method, $params = []) {
         $url = $this->urlBasic . $this->token . "/" . $method;
-//        $url .= (!empty($params) ? "?" . http_build_query($params) : "");
-
         $params['method'] = $method;
-        $result = $this->sendRequest($url, $params);
 
-//        return json_decode(file_get_contents($url), true);
-
-        return $result;
+        return $this->sendRequest($url, $params);
     }
 
     function getUpdatesOffset($offset = 50) {
@@ -53,6 +50,7 @@ class TelegramBot {
     }
 
     function sendMessageToChats($arChatId = [], $opt = []) {
+        $arChatId = is_array($arChatId) ? $arChatId : (array)$arChatId;
         foreach ($arChatId as $chatId) {
             $opt["chat_id"] = $chatId;
             $this->sendMessage($opt);
@@ -132,5 +130,22 @@ class TelegramBot {
         $response = $this->query("getChatMember", ["chat_id" => $channelName, "user_id" => $userId]);
 
         return !empty($response["result"]) ? $response["result"]["status"] : false;
+    }
+
+    public function saveUpdateId($updateId) {
+        return file_put_contents("data/update_id.dat", $updateId);
+    }
+
+    public function getUpdateId() {
+        $file = "data/update_id.dat";
+
+        return file_exists($file) ? file_get_contents($file) : false;
+
+    }
+
+    public function getMe() {
+        $response = $this->query("getMe");
+
+        return !empty($response["result"]) ? $response["result"] : false;
     }
 }

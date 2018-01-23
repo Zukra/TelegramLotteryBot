@@ -27,10 +27,11 @@ $timeForChannelSend = $starTime + $config["channel"]["interval"]; // время 
 $bot = new TelegramBot($token);
 $lotto = new Lotto();
 
-$isChange = false;  // if something changes
-
 while (true) {
     $currentTime = time();
+    $isChange = false;  // if something changes
+    $isCommandTop = false; // TOP command was launched
+
     // update config.cfg with out restart script
     if (file_exists($fileCfg)) {
         clearstatcache();
@@ -43,38 +44,57 @@ while (true) {
         exit();
     }
 
-    $response = $bot->getUpdatesOffset($config['lastMessages']); // получаем последние сообщений
+    $urlRules = "<a href=\"{$config['urlRules']}\">Правила конкурса</a>";
 
+    $response = $bot->getUpdatesOffset($config['lastMessages']); // получаем последние сообщений
     /*
-    $data = include 'data/test_data.php';  // тестовые данные
-    $response = json_decode($data, true);
+        $data = include 'data/test_data.php';  // тестовые данные
+        $response = json_decode($data, true);
     */
 
     if ($response && $response["ok"]) {
-//        $lastMsg = $response["result"][count($response["result"]) - 1];
-//        $lastMsg["message"] = $lastMsg["message"] ? : $lastMsg["edited_message"];
-//        foreach ($response["result"] as $message) {
-        /*
-        if (!in_array($message["message"]["text"], ["/stop", "/show"])) {
-            continue;
+        // get admins from all chats
+        $arAdministrators = [];
+        foreach ($config['arChatId'] as $chatId) {
+            $arTmp = $bot->getChatAdministrators($chatId) ?: []; // get chat admins
+            $arAdministrators = array_merge($arAdministrators, $arTmp);
+            unset($arTmp);
         }
-        $arAdministrators = $bot->getChatAdministrators($message["message"]["chat"]["id"]); // get chat admins
-        $arAdminsIds = $bot->getAdminsIds($arAdministrators);
-        if (in_array($message["message"]["from"]["id"], $arAdminsIds)) {
-            switch ($message["message"]["text"]) {
-                case "/stop":
-                    $bot->sendMessageToChats($config['arChatId'], ["text" => "The bot is stopped.", "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
-                    exit();
-                    break;
-                case "/show" :
-                    $bot->sendMessageToChats($config['arChatId'], ["text" => "testing command" . $message["message"]["text"], "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
-                    $bot->deleteMessage($config['arChatId'], $message["message"]["message_id"]);
-                    break;
+        $arAdminsIds = array_unique($bot->getAdminsIds($arAdministrators));
+
+        // run bot command
+        foreach ($response["result"] as $result) {
+            $result["message"] = isset($result["message"]) ? $result["message"] : $result["edited_message"];
+            // команда для бота и от админа
+            if (isset($result["message"]['entities'])
+                && $result["message"]['entities'][0]['type'] == 'bot_command'
+                && in_array($result["message"]["from"]["id"], $arAdminsIds)) {
+                $updateId = $bot->getUpdateId() ?: 0;
+                // если эта комманда ещё не была выполнена - выполняем и записываем в файл её update_id
+                if ($updateId < $result['update_id']) {
+                    switch ($result["message"]["text"]) {
+                        case "/stop":
+                        case "/stop@{$bot->info['username']}":
+                            $bot->sendMessageToChats($result["message"]['chat']['id'], ["text" => "The bot is stopped.", "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
+                            $bot->saveUpdateId($result['update_id']);
+                            exit();
+                            break;
+                        case "/show" :
+                        case "/show@{$bot->info['username']}":
+                            $bot->sendMessageToChats($result["message"]['chat']['id'], ["text" => "testing command " . $result["message"]["text"], "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
+                            $bot->saveUpdateId($result['update_id']);
+                            break;
+                        case "/top" :
+                        case "/top@{$bot->info['username']}":
+                            $bot->saveUpdateId($result['update_id']);
+                            $isCommandTop = true;
+                            break;
+                    }
+                }
             }
         }
-        */
-//        }
 
+        // general
         $lotto->arTickets = $lotto->getTickets() ?: []; // get saved выданные билеты
         $ticketCount = count($lotto->arTickets);
         ksort($lotto->arTickets);
@@ -90,6 +110,7 @@ while (true) {
         $lotto->arNewMembers = $lotto->getAddedMembers($response["result"], $config['arChatId']); // новые пользователи в чате
 
         foreach ($lotto->arNewMembers as $user) {
+            // если обновился статус
 //            if (empty($user["FROM"]["STATUS_IN_CHANNEL"])) {
 //                $isChange = true;
 //                $user["FROM"]["STATUS_IN_CHANNEL"] = $bot->inChannel($user["FROM"]["ID"], $config['channel']['name']);  // check user status in channel
@@ -101,6 +122,7 @@ while (true) {
             // если это новый приглашённый пользовватель - добавляем, записываем данные и выдаём билет
             foreach ($user["NEW_MEMBER"] as $newMember) {
                 if (!isset($lotto->arStoredMembers[$newMember["ID"]])) {
+                    // если обновился статус
 //                    if (empty($newMember["STATUS_IN_CHANNEL"])) {
 //                        $isChange = true;
 //                        $newMember["STATUS_IN_CHANNEL"] = $bot->inChannel($newMember["ID"], $config['channel']['name']);  // check user status in channel
@@ -150,8 +172,7 @@ while (true) {
 //                            . " " . $newMember["USERNAME"] . " (" . $newMember["ID"] . ")"
                             . PHP_EOL
                             . "Вероятность победы — " . round($lotto->arMemberTicketsCnt[$user["FROM"]["ID"]] / count($lotto->arTickets) * 100, 2) . "%"
-                            . PHP_EOL
-                            . "<a href=\"{$config['urlRules']}\">Правила конкурса</a>";
+                            . PHP_EOL . $urlRules;
 //                            . PHP_EOL . PHP_EOL . "Спонсор - <a href=\"https://t.me/sendnewcoin\">New coins Hunter</a>"
 //                            . "[Текущие результаты]({$config['urlXlsx']})";
 
@@ -192,9 +213,10 @@ while (true) {
                 $isTimeShowTop = true;
                 $timeForMoreSend = $currentTime + $config['intervalSecondSec'];
             }
-            if ($isTimeShowTop) {
-                $chanceText = $lotto->getChanceOfWinning($config['memberCnt']);
-                $chanceText .= "<a href=\"{$config['urlRules']}\">Правила конкурса</a>";
+            // введена команда top или время выводить
+            if ($isCommandTop || $isTimeShowTop) {
+                $chanceText = $lotto->getChanceOfWinning($config['memberCnt'])
+                    . $urlRules;
                 $bot->sendMessageToChats($config['arChatId'], ["text" => $chanceText, "parse_mode" => "HTML", "disable_web_page_preview" => true, "disable_notification" => true]);
             }
         }

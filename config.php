@@ -9,24 +9,25 @@ $listChats = [
 ];
 
 return [
-    'arChatId'        => [$listChats["@test_group_test"]],
+    'arChatId'     => [$listChats["@test_group_test"],],
+    'lastMessages' => 30, // последние 30 сообщений
+    'intervalSec'  => 10, // sec как часто сканировать чат
+    'urlRules'     => "https://t.me/metalplacechat/2579",  // a link to the message in chat
+
+    'showTop'           => true, // show TOP
+    'memberCnt'         => 10,  // сколько первых участников показывать с шансом выигрыша
+    'intervalSecondSec' => 60 * 10, // 10 min  (используется, если arSpecificTime пустой)
+    'arSpecificTime'    => ["09:00:00", "16:00:00", "19:30:00", "19:35:00",], // конкретное время вывода
+
+    'xmlReports' => false, // create xml-files
+
     'arMembersStatus' => ["creator", "administrator", "member", "restricted"],
-    'channel'         => [
+
+    'channel' => [
         "name"     => "@shownewcoin",  // канал, в котором д.б. зарегистрирован участник
         "id"       => [$listChats["@shownewcoin"]],
         "interval" => 30, // sec
     ],
-    'urlRules'        => "https://t.me/metalplacechat/2579",  // a link to the message in chat
-
-    'lastMessages' => 30, // последние 30 сообщений
-    'intervalSec'  => 10, // sec как часто сканировать чат
-
-    'showTop'           => true, // show TOP
-    'intervalSecondSec' => 60 * 10, // 10 min  (используется, если arSpecificTime пустой)
-    'arSpecificTime'    => ["09:00:00", "16:00:00", "15:00:00",], // конкретное время вывода
-
-    'xmlReports' => false, // create xml-files
-    'memberCnt'  => 10, // сколько первых участников показывать с шансом выигрыша
 
     //'urlXlsx' => "https://metal.place/lottery/data/results.xlsx",
 ];

@@ -15,18 +15,15 @@ class Lotto {
     }
 
     public function getData($fileName) {
-        $file = "data/" . $fileName . ".php";
+        $file = "data/{$fileName}php";
 
-        if (file_exists($file)) {
-            return include($file);
-        } else {
-            return false;
-        }
+        return file_exists($file) ? include($file) : false;
     }
 
     public function saveData($data, $fileName) {
         $storageData = '<?php return ' . var_export($data, true) . ';';
-        file_put_contents("data/" . strtolower($fileName) . '.php', $storageData);
+
+        return file_put_contents("data/" . strtolower($fileName) . '.php', $storageData);
     }
 
     public function getAddedMembers($result, $arChatId) {
