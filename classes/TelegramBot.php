@@ -107,6 +107,12 @@ class TelegramBot {
         return !empty($response["result"]) ? $response["result"] : false;
     }
 
+    public function deleteMessage($chatId, $msgId) {
+        $response = $this->query("deleteMessage", ["chat_id" => $chatId, "message_id" => $msgId]);
+
+        return !empty($response["ok"]) ? $response["ok"] : false;
+    }
+
     public function getAdminsIds($arAdministrators) {
         $arResult = [];
         foreach ($arAdministrators as $administrator) {
