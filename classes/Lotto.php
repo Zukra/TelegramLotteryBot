@@ -15,7 +15,7 @@ class Lotto {
     }
 
     public function getData($fileName) {
-        $file = "data/{$fileName}php";
+        $file = "data/{$fileName}.php";
 
         return file_exists($file) ? include($file) : false;
     }

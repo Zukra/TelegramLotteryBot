@@ -47,9 +47,10 @@ while (true) {
     $urlRules = "<a href=\"{$config['urlRules']}\">Правила конкурса</a>";
 
     $response = $bot->getUpdatesOffset($config['lastMessages']); // получаем последние сообщений
+
     /*
-        $data = include 'data/test_data.php';  // тестовые данные
-        $response = json_decode($data, true);
+    $data = include 'data/test_data.php';  // тестовые данные
+    $response = json_decode($data, true);
     */
 
     if ($response && $response["ok"]) {
@@ -230,7 +231,8 @@ while (true) {
         }
         */
 
-        if ($config['xmlReports'] && $isChange) {
+        // if ($config['xmlReports'] && $isChange) {
+        if ($config['xmlReports']) {
             // Create new PHPExcel object
             $objPHPExcel = new PHPExcel();
 
@@ -263,6 +265,6 @@ while (true) {
         }
     }
 
-//    exit();
+    // exit();
     sleep($config['intervalSec']);
 }
